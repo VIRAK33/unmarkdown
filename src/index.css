@@ -256,6 +256,37 @@
   display: none !important;
 }
 
+.cm-panels-bottom {
+  background: transparent !important;
+  border-top: none !important;
+}
+
+.cm-vim-panel {
+  display: flex;
+  align-items: center;
+  height: 1.75rem;
+  padding: 0 0.75rem;
+  border-top: 1px solid color-mix(in oklch, var(--border) 60%, transparent);
+  background: transparent !important;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--foreground);
+}
+
+.cm-vim-panel input {
+  background: transparent;
+  border: none;
+  outline: none;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--foreground);
+  width: 100%;
+}
+
+.cm-vim-message {
+  color: var(--muted-foreground) !important;
+}
+
 .cm-editor .cm-selectionBackground {
   background-color: oklch(0.556 0 0 / 20%) !important;
 }

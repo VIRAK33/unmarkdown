@@ -4,7 +4,7 @@ import {
   RotateCcwIcon,
   WandSparklesIcon,
 } from "lucide-react";
-import { Children, isValidElement, useEffect, useRef, useState } from "react";
+import { Children, isValidElement, useEffect, useLayoutEffect, useRef, useState } from "react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
@@ -25,6 +25,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./comp
 import { useLocalStorage } from "./hooks/use-local-storage";
 import { useNotes } from "./hooks/use-notes";
 import { useTheme } from "./hooks/use-theme";
+import { formatMarkdown } from "./lib/format";
 import { cn } from "./lib/utils";
 
 type RightTab = "outline" | "preview";
@@ -38,6 +39,7 @@ export default function App() {
   const [vimMode, setVimMode] = useLocalStorage("vim-mode", false);
   const [rightTab, setRightTab] = useLocalStorage<RightTab>("right-tab", "preview");
   const containerRef = useRef<HTMLDivElement>(null);
+  const setEditorContent = useRef<((content: string) => void) | null>(null);
 
   const {
     activeId,
@@ -50,12 +52,29 @@ export default function App() {
     updateNote,
   } = useNotes();
 
+  const handleFormatRef = useRef<() => void>(() => {});
+
+  async function handleFormat() {
+    if (!activeNote || !setEditorContent.current) return;
+    const formatted = await formatMarkdown(activeNote.content);
+    setEditorContent.current(formatted);
+    updateNote(activeNote.id, formatted);
+  }
+
+  useLayoutEffect(() => {
+    handleFormatRef.current = handleFormat;
+  });
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (!e.altKey) return;
       if (e.code === "KeyV") {
         e.preventDefault();
         setVimMode(v => !v);
+      }
+      if (e.code === "KeyF") {
+        e.preventDefault();
+        handleFormatRef.current();
       }
     };
     window.addEventListener("keydown", onKey, { capture: true });
@@ -114,7 +133,7 @@ export default function App() {
         <TooltipProvider>
           <div className="flex items-center gap-1">
             <Tooltip>
-              <TooltipTrigger render={<Button size="xs" variant="ghost" />}>
+              <TooltipTrigger render={<Button onClick={handleFormat} size="xs" variant="ghost" />}>
                 <WandSparklesIcon />
                 <span className="font-mono">Format</span>
               </TooltipTrigger>
@@ -192,6 +211,7 @@ export default function App() {
             notes={notes}
             onAdd={addNote}
             onDelete={deleteNote}
+            onEditorReady={(fn) => { setEditorContent.current = fn; }}
             onRename={renameNote}
             onSelect={setActiveId}
             onUpdate={updateNote}
@@ -248,6 +268,7 @@ function EditorPane({
   notes,
   onAdd,
   onDelete,
+  onEditorReady,
   onRename,
   onSelect,
   onUpdate,
@@ -258,6 +279,7 @@ function EditorPane({
   notes: Note[];
   onAdd: () => void;
   onDelete: (id: string) => void;
+  onEditorReady: (setContent: (content: string) => void) => void;
   onRename: (id: string, title: string) => void;
   onSelect: (id: string) => void;
   onUpdate: (id: string, content: string) => void;
@@ -291,6 +313,7 @@ function EditorPane({
             <EditorView
               key={activeNote.id}
               note={activeNote}
+              onReady={onEditorReady}
               onUpdate={onUpdate}
               vimMode={vimMode}
             />

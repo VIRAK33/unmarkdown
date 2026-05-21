@@ -170,7 +170,15 @@ export function useCodemirror({
     return () => observer.disconnect();
   }, []);
 
-  return editorRef;
+  function setContent(content: string) {
+    const view = viewRef.current;
+    if (!view) return;
+    view.dispatch({
+      changes: { from: 0, insert: content, to: view.state.doc.length },
+    });
+  }
+
+  return { editorRef, setContent };
 }
 
 function catppuccinTheme() {
