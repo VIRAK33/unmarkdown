@@ -10,12 +10,12 @@ export type Note = {
 
 const store = createStore("unmarkdown", "notes");
 
-export function createNote(): Note {
+export function createNote(content = ""): Note {
   return {
-    content: "",
+    content,
     createdAt: Date.now(),
     id: crypto.randomUUID(),
-    title: "Untitled",
+    title: titleFromContent(content) || "Untitled",
     updatedAt: Date.now(),
   };
 }

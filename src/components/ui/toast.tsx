@@ -11,7 +11,7 @@ import {
   TriangleAlertIcon,
 } from "lucide-react";
 
-import { buttonVariants } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 const TOAST_ICONS = {
@@ -146,10 +146,10 @@ function Toasts({
     <Toast.Portal data-slot="toast-portal" {...portalProps}>
       <Toast.Viewport
         className={cn(
-          "fixed z-60 mx-auto flex w-[calc(100%-var(--toast-inset)*2)] max-w-90 [--toast-inset:--spacing(4)] sm:[--toast-inset:--spacing(8)]",
+          "fixed z-60 mx-auto flex w-[calc(100%-var(--toast-inset)*2)] max-w-90 [--toast-inset:--spacing(5)]",
           // Vertical positioning
           "data-[position*=top]:top-(--toast-inset)",
-          "data-[position*=bottom]:bottom-(--toast-inset)",
+          "data-[position*=bottom]:bottom-[calc(var(--toast-inset)*2)]",
           // Horizontal positioning
           "data-[position*=left]:left-(--toast-inset)",
           "data-[position*=right]:right-(--toast-inset)",
@@ -162,6 +162,9 @@ function Toasts({
           const Icon = toast.type
             ? TOAST_ICONS[toast.type as keyof typeof TOAST_ICONS]
             : null;
+
+          const dismissLabel = (toast.data as { dismissLabel?: string })?.dismissLabel;
+          const onDismiss = (toast.data as { onDismiss?: () => void })?.onDismiss;
 
           return (
             <Toast.Root
@@ -212,7 +215,7 @@ function Toasts({
               swipeDirection={swipeDirection}
               toast={toast}
             >
-              <Toast.Content className="pointer-events-auto flex items-center justify-between gap-1.5 overflow-hidden px-3.5 py-3 text-sm transition-opacity duration-250 data-behind:not-data-expanded:pointer-events-none data-behind:opacity-0 data-expanded:opacity-100">
+              <Toast.Content className="font-sans pointer-events-auto flex items-center justify-between gap-3 overflow-hidden px-3.5 py-3 text-sm transition-opacity duration-250 data-behind:not-data-expanded:pointer-events-none data-behind:opacity-0 data-expanded:opacity-100">
                 <div className="flex gap-2">
                   {Icon && (
                     <div
@@ -234,13 +237,30 @@ function Toasts({
                     />
                   </div>
                 </div>
-                {toast.actionProps && (
-                  <Toast.Action
-                    className={buttonVariants({ size: "xs" })}
-                    data-slot="toast-action"
-                  >
-                    {toast.actionProps.children}
-                  </Toast.Action>
+                {(toast.actionProps || dismissLabel) && (
+                  <div className="flex shrink-0 gap-1">
+                    {dismissLabel && (
+                      <Button
+                        onClick={() => {
+                          onDismiss?.();
+                          toastManager.close(toast.id);
+                        }}
+                        size="xs"
+                        variant="ghost"
+                      >
+                        {dismissLabel}
+                      </Button>
+                    )}
+                    {toast.actionProps && (
+                      <Toast.Action
+                        className={buttonVariants({ size: "xs" })}
+                        data-slot="toast-action"
+                        onClick={(toast.actionProps as { onClick?: React.MouseEventHandler }).onClick}
+                      >
+                        {toast.actionProps.children}
+                      </Toast.Action>
+                    )}
+                  </div>
                 )}
               </Toast.Content>
             </Toast.Root>

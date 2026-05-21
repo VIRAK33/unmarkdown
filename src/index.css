@@ -242,7 +242,7 @@
     @apply bg-background text-foreground antialiased;
   }
   html {
-    @apply font-sans;
+    @apply font-mono;
   }
 }
 
@@ -297,6 +297,7 @@
 
 .prose {
   color: var(--foreground);
+  font-family: var(--font-sans);
   max-width: none;
   font-size: 0.9375rem;
   line-height: 1.75;

@@ -30,7 +30,7 @@ export function NoteTab({ active, deletable, note, onDelete, onRename, onSelect 
     <div
       className={cn(
         buttonVariants({ size: "xs", variant: "ghost" }),
-        "group shrink-0 cursor-pointer select-none font-mono transition-[background-color,color]",
+        "group shrink-0 cursor-pointer select-none transition-[background-color,color]",
         active ? "bg-foreground/5 hover:bg-foreground/5" : "text-muted-foreground hover:bg-foreground/5 hover:text-foreground",
       )}
       onClick={() => !editing && onSelect(note.id)}
@@ -45,7 +45,7 @@ export function NoteTab({ active, deletable, note, onDelete, onRename, onSelect 
         {editing && (
           <input
             autoFocus
-            className="absolute inset-0 w-full border-none bg-transparent font-mono text-xs outline-none"
+            className="absolute inset-0 w-full border-none bg-transparent text-xs outline-none"
             onBlur={commit}
             onChange={e => setValue(e.target.value)}
             onClick={e => e.stopPropagation()}

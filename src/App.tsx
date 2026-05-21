@@ -15,17 +15,20 @@ import { EditorView } from "./components/editor-view";
 import { GitHubButton } from "./components/github-button";
 import { NoteTab } from "./components/note-tab";
 import { OutlineTree } from "./components/outline-tree";
+import { ShareButton } from "./components/share-button";
 import { ThemeToggle } from "./components/theme-toggle";
 import { Badge } from "./components/ui/badge";
 import { Button } from "./components/ui/button";
 import { Kbd, KbdGroup } from "./components/ui/kbd";
 import { ScrollArea } from "./components/ui/scroll-area";
 import { Separator } from "./components/ui/separator";
+import { toastManager } from "./components/ui/toast";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./components/ui/tooltip";
 import { useLocalStorage } from "./hooks/use-local-storage";
 import { useNotes } from "./hooks/use-notes";
 import { useTheme } from "./hooks/use-theme";
 import { formatMarkdown } from "./lib/format";
+import { parseShareHash } from "./lib/share";
 import { cn } from "./lib/utils";
 
 type RightTab = "outline" | "preview";
@@ -38,6 +41,7 @@ export default function App() {
   const [dragging, setDragging] = useState(false);
   const [vimMode, setVimMode] = useLocalStorage("vim-mode", false);
   const [rightTab, setRightTab] = useLocalStorage<RightTab>("right-tab", "preview");
+  const [sharedContent] = useState(() => parseShareHash());
   const containerRef = useRef<HTMLDivElement>(null);
   const setEditorContent = useRef<((content: string) => void) | null>(null);
 
@@ -46,6 +50,7 @@ export default function App() {
     activeNote,
     addNote,
     deleteNote,
+    importNote,
     notes,
     renameNote,
     setActiveId,
@@ -112,6 +117,32 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dragging]);
 
+  useEffect(() => {
+    if (!sharedContent) return;
+
+    const title = sharedContent.split("\n").find(l => l.trim())?.replace(/^#+\s*/, "").trim() ?? "Untitled";
+
+    const id = setTimeout(() => {
+      toastManager.add({
+        actionProps: {
+          children: "Save",
+          onClick: () => {
+            importNote(sharedContent);
+            history.replaceState(null, "", location.pathname);
+          },
+        },
+        data: { dismissLabel: "Dismiss", onDismiss: () => history.replaceState(null, "", location.pathname) },
+        description: `Save "${title}" to your notes`,
+        id: "import-shared-note",
+        timeout: 1000000,
+        title: "Note shared with you",
+        type: "info",
+      });
+    }, 0);
+    return () => clearTimeout(id);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const { cycle: cycleTheme, theme } = useTheme();
 
   const leftLabel = Math.round(leftPct);
@@ -120,7 +151,7 @@ export default function App() {
   return (
     <div className="flex h-svh flex-col overflow-hidden">
       <header className="flex h-12 shrink-0 items-center gap-3 border-b border-border/60 px-4">
-        <span className="font-mono text-xs">
+        <span className="text-xs">
           <span className="text-muted-foreground">UnMarkdown</span>
           <span className="mx-1.5 text-muted-foreground/40">/</span>
           <span className="text-foreground">
@@ -135,23 +166,22 @@ export default function App() {
             <Tooltip>
               <TooltipTrigger render={<Button onClick={handleFormat} size="xs" variant="ghost" />}>
                 <WandSparklesIcon />
-                <span className="font-mono">Format</span>
+                Format
               </TooltipTrigger>
               <TooltipContent>
-                <div className="flex items-center gap-1.5">
-                  <span className="text-xs">Format document</span>
-                  <KbdGroup>
-                    <Kbd>{altKey}</Kbd>
-                    <Kbd>F</Kbd>
-                  </KbdGroup>
-                </div>
+                <KbdGroup>
+                  <Kbd>{altKey}</Kbd>
+                  <Kbd>F</Kbd>
+                </KbdGroup>
               </TooltipContent>
             </Tooltip>
+
+            {activeNote && <ShareButton content={activeNote.content} />}
 
             <Tooltip>
               <TooltipTrigger render={(
                 <Button
-                  className={cn("font-mono", vimMode && "bg-foreground/5 hover:bg-foreground/5")}
+                  className={cn(vimMode && "bg-foreground/5 hover:bg-foreground/5")}
                   onClick={() => setVimMode(v => !v)}
                   size="xs"
                   variant="ghost"
@@ -161,20 +191,17 @@ export default function App() {
                 VIM
               </TooltipTrigger>
               <TooltipContent>
-                <div className="flex items-center gap-1.5">
-                  <span className="text-xs">Toggle Vim mode</span>
-                  <KbdGroup>
-                    <Kbd>{altKey}</Kbd>
-                    <Kbd>V</Kbd>
-                  </KbdGroup>
-                </div>
+                <KbdGroup>
+                  <Kbd>{altKey}</Kbd>
+                  <Kbd>V</Kbd>
+                </KbdGroup>
               </TooltipContent>
             </Tooltip>
           </div>
         </TooltipProvider>
 
         <div className="ml-auto flex items-center gap-1">
-          <Badge className="font-mono text-[10px] tabular-nums tracking-wider" variant="outline">
+          <Badge className="text-[10px] tabular-nums tracking-wider" variant="outline">
             {leftLabel}
             % /
             {" "}
@@ -188,7 +215,7 @@ export default function App() {
             variant="ghost"
           >
             <RotateCcwIcon />
-            <span className="font-mono">Reset</span>
+            Reset
           </Button>
         </div>
 
@@ -242,7 +269,7 @@ export default function App() {
             {(["preview", "outline"] as RightTab[]).map(tab => (
               <Button
                 className={cn(
-                  "font-mono capitalize transition-[background-color,color]",
+                  "capitalize transition-[background-color,color]",
                   rightTab === tab ? "bg-foreground/5 hover:bg-foreground/5" : "text-muted-foreground hover:bg-foreground/5 hover:text-foreground",
                 )}
                 key={tab}
@@ -388,7 +415,7 @@ function RightFooter({ note }: { note: Note | null }) {
   const lastSaved = note ? formatRelative(note.updatedAt) : null;
 
   return (
-    <div className="flex h-7 shrink-0 items-center justify-between border-t border-border/60 px-3 font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+    <div className="flex h-7 shrink-0 items-center justify-between border-t border-border/60 px-3 text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
       <span>{lastSaved ? `Saved ${lastSaved}` : "—"}</span>
       <span className="tabular-nums">
         {wordCount}

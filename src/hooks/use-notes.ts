@@ -33,6 +33,14 @@ export function useNotes() {
     });
   }, []);
 
+  const importNote = useCallback((content: string) => {
+    const note = createNote(content);
+    notesDb.save(note).then(() => {
+      setNotes(prev => [...prev, note]);
+      setActiveId(note.id);
+    });
+  }, []);
+
   const updateNote = useCallback((id: string, content: string) => {
     setNotes(prev =>
       prev.map((n) => {
@@ -75,6 +83,7 @@ export function useNotes() {
     activeNote,
     addNote,
     deleteNote,
+    importNote,
     notes,
     renameNote,
     setActiveId,

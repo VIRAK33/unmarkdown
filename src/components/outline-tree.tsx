@@ -29,13 +29,13 @@ export function OutlineTree({ content }: { content: string }) {
           >
             <ChevronRightIcon className="size-[13px]" />
           </span>
-          <span className="font-mono">/</span>
+          <span>/</span>
         </div>
         {open && (
           <ul>
             {roots.length === 0
               ? (
-                  <li className="py-1 pr-3 text-[13px] text-muted-foreground font-mono" style={{ paddingLeft: "36px" }}>
+                  <li className="py-1 pr-3 text-[13px] text-muted-foreground " style={{ paddingLeft: "36px" }}>
                     No headings
                   </li>
                 )
@@ -97,8 +97,8 @@ function TreeNode({ depth = 0, node }: { depth?: number; node: HeadingNode }) {
         >
           <ChevronRightIcon className="size-[13px]" />
         </span>
-        <span className="truncate font-mono">{node.text}</span>
-        <span className="ml-auto shrink-0 font-mono text-[10px] font-bold tracking-[0.04em] opacity-40">
+        <span className="truncate ">{node.text}</span>
+        <span className="ml-auto shrink-0  text-[10px] font-bold tracking-[0.04em] opacity-40">
           H
           {node.level}
         </span>

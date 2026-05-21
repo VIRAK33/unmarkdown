@@ -15,7 +15,7 @@ export function GitHubButton() {
       variant="ghost"
     >
       <GitHubIcon className="size-3.5" />
-      <span className="font-mono">GitHub</span>
+      GitHub
     </Button>
   );
 }
