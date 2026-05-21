@@ -1,18 +1,36 @@
-import { NotebookPenIcon, PlusIcon, RotateCcwIcon, WandSparklesIcon, XIcon } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import {
+  NotebookPenIcon,
+  PlusIcon,
+  RotateCcwIcon,
+  WandSparklesIcon,
+} from "lucide-react";
+import { Children, isValidElement, useEffect, useRef, useState } from "react";
+import Markdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 import type { Note } from "./lib/notes";
 
+import { CodeBlock } from "./components/code-block";
+import { EditorView } from "./components/editor-view";
+import { GitHubButton } from "./components/github-button";
+import { NoteTab } from "./components/note-tab";
+import { OutlineTree } from "./components/outline-tree";
+import { ThemeToggle } from "./components/theme-toggle";
 import { Badge } from "./components/ui/badge";
-import { Button, buttonVariants } from "./components/ui/button";
+import { Button } from "./components/ui/button";
+import { Kbd, KbdGroup } from "./components/ui/kbd";
 import { ScrollArea } from "./components/ui/scroll-area";
 import { Separator } from "./components/ui/separator";
-import { Switch } from "./components/ui/switch";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./components/ui/tooltip";
 import { useLocalStorage } from "./hooks/use-local-storage";
 import { useNotes } from "./hooks/use-notes";
+import { useTheme } from "./hooks/use-theme";
 import { cn } from "./lib/utils";
 
 type RightTab = "outline" | "preview";
+
+const isMac = /Mac|iPhone|iPad|iPod/.test(navigator.userAgent);
+const altKey = isMac ? "⌥" : "Alt";
 
 export default function App() {
   const [leftPct, setLeftPct] = useLocalStorage("split-pct", 50);
@@ -29,7 +47,21 @@ export default function App() {
     notes,
     renameNote,
     setActiveId,
+    updateNote,
   } = useNotes();
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (!e.altKey) return;
+      if (e.code === "KeyV") {
+        e.preventDefault();
+        setVimMode(v => !v);
+      }
+    };
+    window.addEventListener("keydown", onKey, { capture: true });
+    return () => window.removeEventListener("keydown", onKey, { capture: true });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (!dragging) return;
@@ -58,7 +90,10 @@ export default function App() {
       document.body.style.cursor = prevCursor;
       document.body.style.userSelect = prevSelect;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dragging]);
+
+  const { cycle: cycleTheme, theme } = useTheme();
 
   const leftLabel = Math.round(leftPct);
   const rightLabel = 100 - leftLabel;
@@ -76,23 +111,54 @@ export default function App() {
 
         <Separator className="h-5" orientation="vertical" />
 
-        <div className="flex items-center gap-1">
-          <Button size="xs" variant="ghost">
-            <WandSparklesIcon />
-            <span className="font-mono">Format</span>
-          </Button>
-          <label className="flex cursor-pointer items-center gap-1.5">
-            <Switch checked={vimMode} onCheckedChange={v => setVimMode(v)} />
-            <span className={`font-mono text-xs transition-colors ${vimMode ? "text-foreground" : "text-muted-foreground"}`}>
-              VIM
-            </span>
-          </label>
-        </div>
+        <TooltipProvider>
+          <div className="flex items-center gap-1">
+            <Tooltip>
+              <TooltipTrigger render={<Button size="xs" variant="ghost" />}>
+                <WandSparklesIcon />
+                <span className="font-mono">Format</span>
+              </TooltipTrigger>
+              <TooltipContent>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs">Format document</span>
+                  <KbdGroup>
+                    <Kbd>{altKey}</Kbd>
+                    <Kbd>F</Kbd>
+                  </KbdGroup>
+                </div>
+              </TooltipContent>
+            </Tooltip>
 
-        <div className="ml-auto flex items-center gap-2">
+            <Tooltip>
+              <TooltipTrigger render={(
+                <Button
+                  className={cn("font-mono", vimMode && "bg-foreground/5 hover:bg-foreground/5")}
+                  onClick={() => setVimMode(v => !v)}
+                  size="xs"
+                  variant="ghost"
+                />
+              )}
+              >
+                VIM
+              </TooltipTrigger>
+              <TooltipContent>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs">Toggle Vim mode</span>
+                  <KbdGroup>
+                    <Kbd>{altKey}</Kbd>
+                    <Kbd>V</Kbd>
+                  </KbdGroup>
+                </div>
+              </TooltipContent>
+            </Tooltip>
+          </div>
+        </TooltipProvider>
+
+        <div className="ml-auto flex items-center gap-1">
           <Badge className="font-mono text-[10px] tabular-nums tracking-wider" variant="outline">
             {leftLabel}
             % /
+            {" "}
             {rightLabel}
             %
           </Badge>
@@ -106,6 +172,13 @@ export default function App() {
             <span className="font-mono">Reset</span>
           </Button>
         </div>
+
+        <Separator className="h-5" orientation="vertical" />
+
+        <div className="flex items-center gap-1">
+          <GitHubButton />
+          <ThemeToggle onClick={cycleTheme} theme={theme} />
+        </div>
       </header>
 
       <div className="relative flex flex-1 overflow-hidden" ref={containerRef}>
@@ -115,11 +188,14 @@ export default function App() {
         >
           <EditorPane
             activeId={activeId}
+            activeNote={activeNote}
             notes={notes}
             onAdd={addNote}
             onDelete={deleteNote}
             onRename={renameNote}
             onSelect={setActiveId}
+            onUpdate={updateNote}
+            vimMode={vimMode}
           />
         </div>
 
@@ -128,18 +204,17 @@ export default function App() {
           aria-valuemax={85}
           aria-valuemin={15}
           aria-valuenow={leftLabel}
-          className="group relative z-10 w-4 shrink-0 cursor-col-resize"
+          className="group relative z-10 w-px shrink-0 cursor-col-resize overflow-visible"
           onDoubleClick={() => setLeftPct(50)}
           onMouseDown={(e) => {
             e.preventDefault();
             setDragging(true);
           }}
           role="separator"
-          style={{ background: "linear-gradient(to right, color-mix(in oklch, var(--foreground) 2%, transparent) 50%, transparent 50%)" }}
         >
-          <div className={`absolute inset-0 transition-colors duration-150 ${dragging ? "bg-foreground/5" : "group-hover:bg-foreground/3"}`} />
-          <div className="absolute inset-y-0 left-1/2 w-px -translate-x-px bg-border" />
-          <div className={`pointer-events-none absolute top-1/2 left-1/2 w-[3px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-foreground/30 transition-all duration-200 ${dragging ? "h-12 bg-foreground/40 opacity-100" : "h-8 opacity-0 group-hover:opacity-100"}`} />
+          <div className="absolute inset-y-0 -inset-x-1.5 transition-colors duration-150" />
+          <div className="absolute inset-y-0 left-0 w-px bg-border" />
+          <div className={`pointer-events-none absolute top-1/2 left-1/2 w-0.75 -translate-x-1/2 -translate-y-1/2 rounded-full bg-foreground/30 transition-all duration-200 ${dragging ? "h-12 bg-foreground/50 opacity-100" : "h-8 opacity-0 group-hover:opacity-100"}`} />
         </div>
 
         <div className="flex flex-1 flex-col overflow-hidden bg-background">
@@ -148,7 +223,7 @@ export default function App() {
               <Button
                 className={cn(
                   "font-mono capitalize transition-[background-color,color]",
-                  rightTab === tab ? "bg-foreground/5 hover:bg-foreground/5" : "hover:bg-transparent",
+                  rightTab === tab ? "bg-foreground/5 hover:bg-foreground/5" : "text-muted-foreground hover:bg-foreground/5 hover:text-foreground",
                 )}
                 key={tab}
                 onClick={() => setRightTab(tab)}
@@ -160,6 +235,7 @@ export default function App() {
             ))}
           </div>
           <PreviewPane note={activeNote} tab={rightTab} />
+          <RightFooter note={activeNote} />
         </div>
       </div>
     </div>
@@ -168,18 +244,24 @@ export default function App() {
 
 function EditorPane({
   activeId,
+  activeNote,
   notes,
   onAdd,
   onDelete,
   onRename,
   onSelect,
+  onUpdate,
+  vimMode,
 }: {
   activeId: null | string;
+  activeNote: Note | null;
   notes: Note[];
   onAdd: () => void;
   onDelete: (id: string) => void;
   onRename: (id: string, title: string) => void;
   onSelect: (id: string) => void;
+  onUpdate: (id: string, content: string) => void;
+  vimMode: boolean;
 }) {
   return (
     <div className="flex h-full flex-col">
@@ -197,133 +279,99 @@ function EditorPane({
                 onSelect={onSelect}
               />
             ))}
-            <Button onClick={onAdd} size="xs" variant="ghost">
+            <Button className="hover:bg-foreground/5" onClick={onAdd} size="xs" variant="ghost">
               <PlusIcon className="size-3.5" />
             </Button>
           </div>
         </ScrollArea>
       </div>
 
-      <div className="flex flex-1 flex-col items-center justify-center gap-4">
-        <NotebookPenIcon className="size-16 text-muted-foreground/30" strokeWidth={1} />
-        <p className="text-sm text-muted-foreground/50">Start writing…</p>
-      </div>
+      {activeNote
+        ? (
+            <EditorView
+              key={activeNote.id}
+              note={activeNote}
+              onUpdate={onUpdate}
+              vimMode={vimMode}
+            />
+          )
+        : (
+            <div className="flex flex-1 flex-col items-center justify-center gap-4">
+              <NotebookPenIcon className="size-16 text-muted-foreground/30" strokeWidth={1} />
+              <p className="text-sm text-muted-foreground/50">Start writing…</p>
+            </div>
+          )}
     </div>
   );
 }
 
-function NoteTab({
-  active,
-  deletable,
-  note,
-  onDelete,
-  onRename,
-  onSelect,
-}: {
-  active: boolean;
-  deletable: boolean;
-  note: Note;
-  onDelete: (id: string) => void;
-  onRename: (id: string, title: string) => void;
-  onSelect: (id: string) => void;
-}) {
-  const [editing, setEditing] = useState(false);
-  const [value, setValue] = useState("");
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  const commit = () => {
-    const trimmed = value.trim();
-    if (trimmed) onRename(note.id, trimmed);
-    setEditing(false);
-  };
-
-  return (
-    <div
-      className={cn(
-        buttonVariants({ size: "xs", variant: "ghost" }),
-        "group shrink-0 cursor-pointer select-none font-mono transition-[background-color,color]",
-        active ? "bg-foreground/5 hover:bg-foreground/5" : "text-muted-foreground hover:bg-transparent hover:text-foreground",
-      )}
-      onClick={() => !editing && onSelect(note.id)}
-      onDoubleClick={(e) => {
-        e.stopPropagation();
-        setValue(note.title);
-        setEditing(true);
-      }}
-    >
-      <div className="relative">
-        <span className={editing ? "invisible" : ""}>{editing ? (value || " ") : note.title}</span>
-        {editing && (
-          <input
-            autoFocus
-            className="absolute inset-0 w-full border-none bg-transparent font-mono text-xs outline-none"
-            onBlur={commit}
-            onChange={e => setValue(e.target.value)}
-            onClick={e => e.stopPropagation()}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") commit();
-              if (e.key === "Escape") setEditing(false);
-            }}
-            ref={inputRef}
-            value={value}
-          />
-        )}
-      </div>
-      {deletable && (
-        <span
-          className="-mr-[3px] flex size-3.5 items-center justify-center rounded-sm opacity-0 transition-opacity hover:bg-foreground/10 group-hover:opacity-100"
-          onClick={(e) => {
-            e.stopPropagation();
-            onDelete(note.id);
-          }}
-          role="button"
-        >
-          <XIcon className="size-2.5" />
-        </span>
-      )}
-    </div>
-  );
+function formatRelative(ts: number): string {
+  const diff = Date.now() - ts;
+  const s = Math.floor(diff / 1000);
+  if (s < 60) return "just now";
+  const m = Math.floor(s / 60);
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  return `${Math.floor(h / 24)}d ago`;
 }
 
 function PreviewPane({ note, tab }: { note: Note | null; tab: RightTab }) {
   if (!note) return <div className="flex-1" />;
 
   if (tab === "outline") {
-    const headings = note.content
-      .split("\n")
-      .filter(l => /^#{1,6}\s/.test(l))
-      .map((l) => {
-        const level = l.match(/^(#+)/)?.[1].length ?? 1;
-        const text = l.replace(/^#+\s*/, "");
-        return { level, text };
-      });
-
     return (
-      <div className="flex-1 overflow-auto p-4">
-        {headings.length === 0
-          ? (
-              <p className="text-sm text-muted-foreground/50">No headings yet.</p>
-            )
-          : (
-              <ul className="space-y-1">
-                {headings.map((h, i) => (
-                  <li
-                    className="cursor-pointer truncate font-mono text-xs text-muted-foreground transition-colors hover:text-foreground"
-                    key={i}
-                    style={{ paddingLeft: `${(h.level - 1) * 12}px` }}
-                  >
-                    {h.text}
-                  </li>
-                ))}
-              </ul>
-            )}
+      <div className="flex-1 overflow-auto">
+        <OutlineTree content={note.content} />
       </div>
     );
   }
 
   return (
     <div className="flex-1 overflow-auto p-4">
-      <p className="text-sm text-muted-foreground/50">Preview</p>
+      <div className="prose">
+        <Markdown
+          components={{
+            pre({ children }) {
+              type CodeProps = { children?: React.ReactNode; className?: string };
+              const codeEl = Children.toArray(children).find(
+                child => isValidElement(child) && child.type === "code",
+              ) as React.ReactElement<CodeProps> | undefined;
+              const lang = (codeEl?.props.className ?? "").replace("language-", "");
+              const code = String(codeEl?.props.children ?? "").trimEnd();
+              return <CodeBlock code={code} lang={lang} />;
+            },
+          }}
+          remarkPlugins={[remarkGfm]}
+        >
+          {note.content}
+        </Markdown>
+      </div>
+    </div>
+  );
+}
+
+function RightFooter({ note }: { note: Note | null }) {
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setTick(t => t + 1), 30_000);
+    return () => clearInterval(id);
+  }, []);
+
+  const wordCount = note
+    ? note.content.trim().split(/\s+/).filter(Boolean).length
+    : 0;
+
+  const lastSaved = note ? formatRelative(note.updatedAt) : null;
+
+  return (
+    <div className="flex h-7 shrink-0 items-center justify-between border-t border-border/60 px-3 font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+      <span>{lastSaved ? `Saved ${lastSaved}` : "—"}</span>
+      <span className="tabular-nums">
+        {wordCount}
+        {" "}
+        {wordCount === 1 ? "word" : "words"}
+      </span>
     </div>
   );
 }
