@@ -11,9 +11,11 @@ export function Slider({
   defaultValue,
   max = 100,
   min = 0,
+  showTooltip = false,
+  thumbClassName,
   value,
   ...props
-}: SliderPrimitive.Root.Props): React.ReactElement {
+}: SliderPrimitive.Root.Props & { showTooltip?: boolean; thumbClassName?: string }): React.ReactElement {
   const _values = React.useMemo(() => {
     if (value !== undefined) {
       return Array.isArray(value) ? value : [value];
@@ -49,11 +51,20 @@ export function Slider({
           />
           {Array.from({ length: _values.length }, (_, index) => (
             <SliderPrimitive.Thumb
-              className="block size-5 shrink-0 select-none rounded-full border border-input bg-white not-dark:bg-clip-padding shadow-xs/5 outline-none transition-[box-shadow,scale] before:absolute before:inset-0 before:rounded-full before:shadow-[0_1px_--theme(--color-black/4%)] has-focus-visible:ring-[3px] has-focus-visible:ring-ring/24 data-dragging:scale-120 sm:size-4 dark:border-background dark:has-focus-visible:ring-ring/48 [:has(*:focus-visible),[data-dragging]]:shadow-none"
+              className={cn(
+                "group relative block size-5 shrink-0 select-none rounded-full border border-input bg-white not-dark:bg-clip-padding shadow-xs/5 outline-none transition-[box-shadow,scale] before:absolute before:inset-0 before:rounded-full before:shadow-[0_1px_--theme(--color-black/4%)] has-focus-visible:ring-[3px] has-focus-visible:ring-ring/24 data-dragging:scale-120 sm:size-4 dark:border-background dark:has-focus-visible:ring-ring/48 [:has(*:focus-visible),[data-dragging]]:shadow-none",
+                thumbClassName,
+              )}
               data-slot="slider-thumb"
               index={index}
               key={String(index)}
-            />
+            >
+              {showTooltip && (
+                <div className="pointer-events-none absolute bottom-full left-1/2 mb-1.5 -translate-x-1/2 whitespace-nowrap rounded bg-foreground px-1.5 py-0.5 text-[10px] font-medium tabular-nums text-background opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-data-[dragging]:opacity-100">
+                  {_values[index]}
+                </div>
+              )}
+            </SliderPrimitive.Thumb>
           ))}
         </SliderPrimitive.Track>
       </SliderPrimitive.Control>

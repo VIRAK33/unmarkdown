@@ -4,7 +4,7 @@ import type { Note } from "@/lib/notes";
 
 import { useCodemirror } from "@/hooks/use-codemirror";
 
-type EditorViewProps = {
+interface EditorViewProps {
   note: Note;
   onReady?: (setContent: (content: string) => void) => void;
   onUpdate: (id: string, content: string) => void;

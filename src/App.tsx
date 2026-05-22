@@ -1,7 +1,6 @@
 import {
   NotebookPenIcon,
   PlusIcon,
-  RotateCcwIcon,
   WandSparklesIcon,
 } from "lucide-react";
 import { Children, isValidElement, useEffect, useLayoutEffect, useRef, useState } from "react";
@@ -13,11 +12,12 @@ import type { Note } from "./lib/notes";
 import { CodeBlock } from "./components/code-block";
 import { EditorView } from "./components/editor-view";
 import { GitHubButton } from "./components/github-button";
+import { Logo } from "./components/logo";
 import { NoteTab } from "./components/note-tab";
 import { OutlineTree } from "./components/outline-tree";
+import { SettingsDialog } from "./components/settings-dialog";
 import { ShareButton } from "./components/share-button";
 import { ThemeToggle } from "./components/theme-toggle";
-import { Badge } from "./components/ui/badge";
 import { Button } from "./components/ui/button";
 import { Kbd, KbdGroup } from "./components/ui/kbd";
 import { ScrollArea } from "./components/ui/scroll-area";
@@ -146,14 +146,14 @@ export default function App() {
   const { cycle: cycleTheme, theme } = useTheme();
 
   const leftLabel = Math.round(leftPct);
-  const rightLabel = 100 - leftLabel;
 
   return (
     <div className="flex h-svh flex-col overflow-hidden">
       <header className="flex h-12 shrink-0 items-center gap-3 border-b border-border/60 px-4">
-        <span className="text-xs">
+        <span className="flex items-center gap-2 text-xs">
+          <Logo className="size-4 shrink-0 text-muted-foreground" />
           <span className="text-muted-foreground">UnMarkdown</span>
-          <span className="mx-1.5 text-muted-foreground/40">/</span>
+          <span className="text-muted-foreground/40">/</span>
           <span className="text-foreground">
             {activeNote?.title ?? "Untitled"}
           </span>
@@ -177,53 +177,24 @@ export default function App() {
             </Tooltip>
 
             {activeNote && <ShareButton content={activeNote.content} />}
-
-            <Tooltip>
-              <TooltipTrigger render={(
-                <Button
-                  className={cn(vimMode && "bg-foreground/5 hover:bg-foreground/5")}
-                  onClick={() => setVimMode(v => !v)}
-                  size="xs"
-                  variant="ghost"
-                />
-              )}
-              >
-                VIM
-              </TooltipTrigger>
-              <TooltipContent>
-                <KbdGroup>
-                  <Kbd>{altKey}</Kbd>
-                  <Kbd>V</Kbd>
-                </KbdGroup>
-              </TooltipContent>
-            </Tooltip>
           </div>
         </TooltipProvider>
 
         <div className="ml-auto flex items-center gap-1">
-          <Badge className="text-[10px] tabular-nums tracking-wider" variant="outline">
-            {leftLabel}
-            % /
-            {" "}
-            {rightLabel}
-            %
-          </Badge>
-          <Button
-            disabled={leftLabel === 50}
-            onClick={() => setLeftPct(50)}
-            size="xs"
-            variant="ghost"
-          >
-            <RotateCcwIcon />
-            Reset
-          </Button>
+          <SettingsDialog
+            leftPct={leftPct}
+            onReset={() => setLeftPct(50)}
+            onSplitChange={setLeftPct}
+            onVimChange={setVimMode}
+            vimMode={vimMode}
+          />
+          <ThemeToggle onClick={cycleTheme} theme={theme} />
         </div>
 
         <Separator className="h-5" orientation="vertical" />
 
         <div className="flex items-center gap-1">
           <GitHubButton />
-          <ThemeToggle onClick={cycleTheme} theme={theme} />
         </div>
       </header>
 

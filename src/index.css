@@ -240,9 +240,13 @@
   }
   body {
     @apply bg-background text-foreground antialiased;
+    position: relative;
   }
   html {
     @apply font-mono;
+  }
+  #root {
+    isolation: isolate;
   }
 }
 
