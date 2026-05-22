@@ -13,7 +13,8 @@ import {
 } from "lucide-react";
 
 import { Button, buttonVariants } from "@/components/ui/button";
-import { cn, formatRelative } from "@/lib/utils";
+import { RelativeTime } from "@/components/ui/relative-time";
+import { cn } from "@/lib/utils";
 
 const TOAST_ICONS = {
   error: CircleAlertIcon,
@@ -233,7 +234,7 @@ function Toasts({
                           <div className="mt-3 flex items-center justify-between">
                             {timestamp !== undefined && (
                               <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground/60">
-                                {formatRelative(timestamp)}
+                                <RelativeTime timestamp={timestamp} />
                               </span>
                             )}
                             {(toast.actionProps || dismissLabel) && (

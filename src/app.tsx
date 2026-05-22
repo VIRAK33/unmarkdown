@@ -21,6 +21,7 @@ import { ShareButton } from "./components/share-button";
 import { ThemeToggle } from "./components/theme-toggle";
 import { Button } from "./components/ui/button";
 import { Kbd, KbdGroup } from "./components/ui/kbd";
+import { RelativeTime } from "./components/ui/relative-time";
 import { ScrollArea } from "./components/ui/scroll-area";
 import { Separator } from "./components/ui/separator";
 import { toastManager } from "./components/ui/toast";
@@ -31,7 +32,7 @@ import { useTheme } from "./hooks/use-theme";
 import { formatMarkdown } from "./lib/format";
 import { titleFromContent } from "./lib/notes";
 import { parseShareHash } from "./lib/share";
-import { cn, formatRelative } from "./lib/utils";
+import { cn } from "./lib/utils";
 
 type RightTab = "outline" | "preview";
 
@@ -390,21 +391,23 @@ function PreviewPane({ note, tab }: { note: Note | null; tab: RightTab }) {
 }
 
 function RightFooter({ note }: { note: Note | null }) {
-  const [, setTick] = useState(0);
-  useEffect(() => {
-    const id = setInterval(() => setTick(t => t + 1), 30_000);
-    return () => clearInterval(id);
-  }, []);
-
   const wordCount = note
     ? note.content.trim().split(/\s+/).filter(Boolean).length
     : 0;
 
-  const lastSaved = note ? formatRelative(note.updatedAt) : null;
-
   return (
     <div className="flex h-7 shrink-0 items-center justify-between border-t border-border/60 px-3 text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-      <span>{lastSaved ? `Saved ${lastSaved}` : "—"}</span>
+      <span>
+        {note
+          ? (
+              <>
+                Saved
+                {" "}
+                <RelativeTime timestamp={note.updatedAt} />
+              </>
+            )
+          : "—"}
+      </span>
       <span className="tabular-nums">
         {wordCount}
         {" "}
