@@ -219,7 +219,18 @@ export function useCodemirror({
     });
   }
 
-  return { editorRef, setContent };
+  function focusLine(line: number) {
+    const view = viewRef.current;
+    if (!view) return;
+    const lineInfo = view.state.doc.line(line);
+    view.dispatch({
+      scrollIntoView: true,
+      selection: { anchor: lineInfo.from, head: lineInfo.from },
+    });
+    view.focus();
+  }
+
+  return { editorRef, focusLine, setContent };
 }
 
 function catppuccinTheme() {
