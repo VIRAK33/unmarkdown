@@ -1,3 +1,4 @@
+import type { Extension } from "@codemirror/state";
 import type { DecorationSet, ViewUpdate } from "@codemirror/view";
 
 import { catppuccinLatte, catppuccinMocha } from "@catppuccin/codemirror";
@@ -8,7 +9,6 @@ import { languages } from "@codemirror/language-data";
 import { RangeSetBuilder } from "@codemirror/state";
 import { Compartment, EditorState } from "@codemirror/state";
 import { Decoration, drawSelection, EditorView, keymap, lineNumbers, ViewPlugin, WidgetType } from "@codemirror/view";
-import { vim } from "@replit/codemirror-vim";
 import { useEffect, useLayoutEffect, useRef } from "react";
 
 class HeadingLabelWidget extends WidgetType {
@@ -26,6 +26,16 @@ class HeadingLabelWidget extends WidgetType {
     el.textContent = `H${this.level}`;
     return el;
   }
+}
+
+let vimExt: (() => Extension) | null = null;
+
+async function getVim() {
+  if (!vimExt) {
+    const mod = await import("@replit/codemirror-vim");
+    vimExt = mod.vim;
+  }
+  return vimExt;
 }
 
 const headingLabels = ViewPlugin.fromClass(
@@ -156,7 +166,7 @@ export function useCodemirror({
       EditorView.lineWrapping,
       headingLabels,
       scrollFollowCursor,
-      vimCompartment.current.of(vimMode ? vim() : []),
+      vimCompartment.current.of([]),
       themeCompartment.current.of([catppuccinTheme(), transparentOverride]),
       EditorView.updateListener.of((update) => {
         if (update.docChanged) onChangeRef.current(update.state.doc.toString());
@@ -178,8 +188,16 @@ export function useCodemirror({
   }, [noteId]);
 
   useEffect(() => {
-    viewRef.current?.dispatch({
-      effects: vimCompartment.current.reconfigure(vimMode ? vim() : []),
+    if (!vimMode) {
+      viewRef.current?.dispatch({
+        effects: vimCompartment.current.reconfigure([]),
+      });
+      return;
+    }
+    getVim().then((vim) => {
+      viewRef.current?.dispatch({
+        effects: vimCompartment.current.reconfigure(vim()),
+      });
     });
   }, [vimMode]);
 

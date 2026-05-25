@@ -3,20 +3,18 @@ import {
   PlusIcon,
   WandSparklesIcon,
 } from "lucide-react";
-import { Children, isValidElement, useEffect, useLayoutEffect, useRef, useState } from "react";
-import Markdown from "react-markdown";
-import rehypeRaw from "rehype-raw";
-import remarkGfm from "remark-gfm";
+import { lazy, Suspense, useEffect, useLayoutEffect, useRef, useState } from "react";
 
 import type { Note } from "./lib/notes";
 
-import { CodeBlock } from "./components/code-block";
+const MarkdownPreview = lazy(() => import("./components/markdown-preview"));
+const SettingsDialog = lazy(() => import("./components/settings-dialog"));
+
 import { EditorView } from "./components/editor-view";
 import { GitHubButton } from "./components/github-button";
 import { Logo } from "./components/logo";
 import { NoteTab } from "./components/note-tab";
 import { OutlineTree } from "./components/outline-tree";
-import { SettingsDialog } from "./components/settings-dialog";
 import { ShareButton } from "./components/share-button";
 import { ThemeToggle } from "./components/theme-toggle";
 import { Button } from "./components/ui/button";
@@ -29,7 +27,6 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./comp
 import { useLocalStorage } from "./hooks/use-local-storage";
 import { useNotes } from "./hooks/use-notes";
 import { useTheme } from "./hooks/use-theme";
-import { formatMarkdown } from "./lib/format";
 import { titleFromContent } from "./lib/notes";
 import { parseShareHash } from "./lib/share";
 import { cn } from "./lib/utils";
@@ -63,6 +60,7 @@ export default function App() {
 
   async function handleFormat() {
     if (!activeNote || !setEditorContent.current) return;
+    const { formatMarkdown } = await import("./lib/format");
     const formatted = await formatMarkdown(activeNote.content);
     setEditorContent.current(formatted);
     updateNote(activeNote.id, formatted);
@@ -193,7 +191,8 @@ export default function App() {
                 Format
               </TooltipTrigger>
               <TooltipContent>
-                <KbdGroup>
+                Format document
+                <KbdGroup className="ml-1.5">
                   <Kbd>{altKey}</Kbd>
                   <Kbd>F</Kbd>
                 </KbdGroup>
@@ -205,13 +204,15 @@ export default function App() {
         </TooltipProvider>
 
         <div className="ml-auto flex items-center gap-1">
-          <SettingsDialog
-            leftPct={leftPct}
-            onReset={() => setLeftPct(50)}
-            onSplitChange={setLeftPct}
-            onVimChange={setVimMode}
-            vimMode={vimMode}
-          />
+          <Suspense fallback={null}>
+            <SettingsDialog
+              leftPct={leftPct}
+              onReset={() => setLeftPct(50)}
+              onSplitChange={setLeftPct}
+              onVimChange={setVimMode}
+              vimMode={vimMode}
+            />
+          </Suspense>
           <ThemeToggle onClick={cycleTheme} theme={theme} />
         </div>
 
@@ -367,23 +368,9 @@ function PreviewPane({ note, tab }: { note: Note | null; tab: RightTab }) {
     <ScrollArea className="flex-1" scrollFade>
       <div className="p-4">
         <div className="prose">
-          <Markdown
-            components={{
-              pre({ children }) {
-                type CodeProps = { children?: React.ReactNode; className?: string };
-                const codeEl = Children.toArray(children).find(
-                  child => isValidElement(child) && child.type === "code",
-                ) as React.ReactElement<CodeProps> | undefined;
-                const lang = (codeEl?.props.className ?? "").replace("language-", "");
-                const code = String(codeEl?.props.children ?? "").trimEnd();
-                return <CodeBlock code={code} lang={lang} />;
-              },
-            }}
-            rehypePlugins={[rehypeRaw]}
-            remarkPlugins={[remarkGfm]}
-          >
-            {note.content}
-          </Markdown>
+          <Suspense fallback={null}>
+            <MarkdownPreview content={note.content} />
+          </Suspense>
         </div>
       </div>
     </ScrollArea>

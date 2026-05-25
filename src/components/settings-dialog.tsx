@@ -22,7 +22,7 @@ interface SettingsDialogProps {
   vimMode: boolean;
 }
 
-export function SettingsDialog({ leftPct, onReset, onSplitChange, onVimChange, vimMode }: SettingsDialogProps) {
+export default function SettingsDialog({ leftPct, onReset, onSplitChange, onVimChange, vimMode }: SettingsDialogProps) {
   const leftLabel = Math.round(leftPct);
 
   return (

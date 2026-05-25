@@ -2,21 +2,8 @@ import { CheckIcon, CopyIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { buttonVariants } from "@/components/ui/button";
-import { getHighlighter } from "@/lib/highlighter";
+import { highlight } from "@/lib/highlighter";
 import { cn } from "@/lib/utils";
-
-const ALIASES: Record<string, string> = {
-  cjs: "javascript",
-  js: "javascript",
-  mjs: "javascript",
-  py: "python",
-  rb: "ruby",
-  rs: "rust",
-  sh: "bash",
-  ts: "typescript",
-  yml: "yaml",
-  zsh: "bash",
-};
 
 export function CodeBlock({ code, lang }: { code: string; lang: string }) {
   const [html, setHtml] = useState<null | string>(null);
@@ -24,17 +11,7 @@ export function CodeBlock({ code, lang }: { code: string; lang: string }) {
 
   useEffect(() => {
     if (!lang) return;
-    const resolvedLang = ALIASES[lang] ?? lang;
-    getHighlighter()
-      .then(hl =>
-        hl.codeToHtml(code, {
-          defaultColor: false,
-          lang: resolvedLang,
-          themes: { dark: "catppuccin-mocha", light: "catppuccin-latte" },
-        }),
-      )
-      .then(setHtml)
-      .catch(() => setHtml(null));
+    highlight(code, lang).then(setHtml).catch(() => setHtml(null));
   }, [code, lang]);
 
   function copy() {
