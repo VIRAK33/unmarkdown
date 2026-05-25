@@ -287,17 +287,21 @@ export default function App() {
               aria-valuemax={85}
               aria-valuemin={15}
               aria-valuenow={leftLabel}
-              className="group relative z-10 w-px shrink-0 cursor-col-resize overflow-visible"
+              className="group relative z-10 w-px shrink-0 cursor-col-resize overflow-visible hover:bg-foreground/5 transition-colors"
               onDoubleClick={() => setLeftPct(50)}
               onMouseDown={(e) => {
                 e.preventDefault();
                 setDragging(true);
               }}
+              onTouchStart={(e) => {
+                e.preventDefault();
+                setDragging(true);
+              }}
               role="separator"
             >
-              <div className="absolute inset-y-0 -inset-x-1.5 transition-colors duration-150" />
+              <div className="absolute inset-y-0 -inset-x-6 transition-colors duration-150" />
               <div className="absolute inset-y-0 left-0 w-px bg-border" />
-              <div className={`pointer-events-none absolute top-1/2 left-1/2 w-0.75 -translate-x-1/2 -translate-y-1/2 rounded-full bg-foreground/30 transition-all duration-200 ${dragging ? "h-12 bg-foreground/50 opacity-100" : "h-8 opacity-60 group-hover:opacity-100"}`} />
+              <div className={`pointer-events-none absolute top-1/2 left-1/2 w-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-foreground/40 transition-all duration-200 ${dragging ? "h-16 bg-foreground/60 opacity-100" : "h-10 opacity-100"}`} />
             </div>
           )}
 
