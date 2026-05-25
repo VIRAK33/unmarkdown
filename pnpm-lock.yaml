@@ -26,6 +26,9 @@ importers:
       '@codemirror/language-data':
         specifier: ^6.5.2
         version: 6.5.2
+      '@codemirror/search':
+        specifier: ^6.5.6
+        version: 6.7.0
       '@codemirror/state':
         specifier: ^6.6.0
         version: 6.6.0
@@ -110,6 +113,9 @@ importers:
       remark-math:
         specifier: ^6.0.0
         version: 6.0.0
+      remark-parse:
+        specifier: ^11.0.0
+        version: 11.0.0
       remark-pdf:
         specifier: ^0.2.4
         version: 0.2.4
@@ -128,6 +134,9 @@ importers:
       tw-animate-css:
         specifier: ^1.4.0
         version: 1.4.0
+      unified:
+        specifier: ^11.0.4
+        version: 11.0.5
     devDependencies:
       '@babel/core':
         specifier: ^7.29.0
