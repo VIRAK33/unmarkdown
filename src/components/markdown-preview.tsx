@@ -2,7 +2,6 @@ import { Children, isValidElement } from "react";
 import Markdown from "react-markdown";
 import rehypeKatex from "rehype-katex";
 import rehypeRaw from "rehype-raw";
-import rehypeSlug from "rehype-slug";
 import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 
@@ -36,7 +35,7 @@ export default function MarkdownPreview({ content, onDoubleClick }: MarkdownPrev
             return <CodeBlock code={code} lang={lang} />;
           },
         }}
-        rehypePlugins={[rehypeRaw, rehypeKatex, rehypeSlug, rehypeLineNumbers]}
+        rehypePlugins={[rehypeRaw, rehypeKatex, rehypeLineNumbers]}
         remarkPlugins={[remarkGfm, remarkMath]}
       >
         {content}
