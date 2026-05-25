@@ -28,6 +28,7 @@ import { Separator } from "./components/ui/separator";
 import { toastManager } from "./components/ui/toast";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./components/ui/tooltip";
 import { useLocalStorage } from "./hooks/use-local-storage";
+import { useIsMobile } from "./hooks/use-media-query";
 import { useNotes } from "./hooks/use-notes";
 import { useTheme } from "./hooks/use-theme";
 import { titleFromContent } from "./lib/notes";
@@ -40,11 +41,13 @@ const isMac = /Mac|iPhone|iPad|iPod/.test(navigator.userAgent);
 const altKey = isMac ? "⌥" : "Alt";
 
 export default function App() {
+  const isMobile = useIsMobile();
   const [leftPct, setLeftPct] = useLocalStorage("split-pct", 50);
   const [dragging, setDragging] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [vimMode, setVimMode] = useLocalStorage("vim-mode", false);
   const [rightTab, setRightTab] = useLocalStorage<RightTab>("right-tab", "preview");
+  const [mobileTab, setMobileTab] = useLocalStorage<"editor" | "outline" | "preview">("mobile-tab", "editor");
   const containerRef = useRef<HTMLDivElement>(null);
   const setEditorContentRef = useRef<((content: string) => void) | null>(null);
   const focusEditorLineRef = useRef<(line: number) => void>(() => {});
@@ -184,21 +187,21 @@ export default function App() {
       <header className="flex h-12 shrink-0 items-center gap-3 border-b border-border/60 px-4">
         <span className="flex items-center gap-2 text-xs">
           <Logo className="size-4 shrink-0 text-muted-foreground" />
-          <span className="text-muted-foreground">UnMarkdown</span>
-          <span className="text-muted-foreground/40">/</span>
+          <span className="hidden sm:inline text-muted-foreground">UnMarkdown</span>
+          <span className="hidden sm:inline text-muted-foreground/40">/</span>
           <span className="max-w-48 truncate text-foreground">
             {activeNote?.title ?? "Untitled"}
           </span>
         </span>
 
-        <Separator className="h-5" orientation="vertical" />
+        <Separator className="h-5 hidden sm:flex" orientation="vertical" />
 
         <TooltipProvider>
           <div className="flex items-center gap-1">
             <Tooltip>
               <TooltipTrigger render={<Button onClick={handleFormat} size="xs" variant="ghost" />}>
                 <WandSparklesIcon />
-                Format
+                <span className="hidden sm:inline">Format</span>
               </TooltipTrigger>
               <TooltipContent>
                 Format document
@@ -211,8 +214,8 @@ export default function App() {
 
             {activeNote && (
               <>
-                <ShareButton content={activeNote.content} />
-                <DownloadButton content={activeNote.content} title={activeNote.title} />
+                <ShareButton content={activeNote.content} iconOnly={isMobile} />
+                <DownloadButton content={activeNote.content} iconOnly={isMobile} title={activeNote.title} />
               </>
             )}
           </div>
@@ -231,61 +234,24 @@ export default function App() {
           <ThemeToggle onClick={cycleTheme} theme={theme} />
         </div>
 
-        <Separator className="h-5" orientation="vertical" />
+        <Separator className="h-5 hidden md:flex" orientation="vertical" />
 
-        <div className="flex items-center gap-1">
+        <div className="hidden md:flex items-center gap-1">
           <GitHubButton />
         </div>
       </header>
 
-      <div className="relative flex flex-1 overflow-hidden" ref={containerRef}>
-        <div
-          className="flex shrink-0 flex-col overflow-hidden bg-foreground/2"
-          style={{ width: `${leftPct}%` }}
-        >
-          <EditorPane
-            activeId={activeId}
-            activeNote={activeNote}
-            focusEditorLineRef={focusEditorLineRef}
-            notes={notes}
-            onAdd={addNote}
-            onDelete={deleteNote}
-            onEditorReady={(fn) => { setEditorContentRef.current = fn; }}
-            onRename={renameNote}
-            onSelect={setActiveId}
-            onUpdate={updateNote}
-            vimMode={vimMode}
-          />
-        </div>
-
-        <div
-          aria-orientation="vertical"
-          aria-valuemax={85}
-          aria-valuemin={15}
-          aria-valuenow={leftLabel}
-          className="group relative z-10 w-px shrink-0 cursor-col-resize overflow-visible"
-          onDoubleClick={() => setLeftPct(50)}
-          onMouseDown={(e) => {
-            e.preventDefault();
-            setDragging(true);
-          }}
-          role="separator"
-        >
-          <div className="absolute inset-y-0 -inset-x-1.5 transition-colors duration-150" />
-          <div className="absolute inset-y-0 left-0 w-px bg-border" />
-          <div className={`pointer-events-none absolute top-1/2 left-1/2 w-0.75 -translate-x-1/2 -translate-y-1/2 rounded-full bg-foreground/30 transition-all duration-200 ${dragging ? "h-12 bg-foreground/50 opacity-100" : "h-8 opacity-0 group-hover:opacity-100"}`} />
-        </div>
-
-        <div className="flex flex-1 flex-col overflow-hidden bg-background">
+      <div className="relative flex flex-1 flex-col overflow-hidden" ref={containerRef}>
+        {isMobile && (
           <div className="flex h-9 shrink-0 items-center gap-0.5 border-b border-border/60 px-2">
-            {(["preview", "outline"] as RightTab[]).map(tab => (
+            {(["editor", "outline", "preview"] as const).map(tab => (
               <Button
                 className={cn(
-                  "capitalize transition-[background-color,color]",
-                  rightTab === tab ? "bg-foreground/5 hover:bg-foreground/5" : "text-muted-foreground hover:bg-foreground/5 hover:text-foreground",
+                  "capitalize flex-1 transition-[background-color,color]",
+                  mobileTab === tab ? "bg-foreground/5 hover:bg-foreground/5" : "text-muted-foreground hover:bg-foreground/5 hover:text-foreground",
                 )}
                 key={tab}
-                onClick={() => setRightTab(tab)}
+                onClick={() => setMobileTab(tab)}
                 size="xs"
                 variant="ghost"
               >
@@ -293,14 +259,98 @@ export default function App() {
               </Button>
             ))}
           </div>
-          <PreviewPane focusEditorLineRef={focusEditorLineRef} note={activeNote} tab={rightTab} />
-          <RightFooter
-            note={activeNote}
-            onRestore={(content) => {
-              setEditorContentRef.current?.(content);
-              if (activeNote) updateNote(activeNote.id, content);
-            }}
-          />
+        )}
+
+        <div className="flex flex-1 overflow-hidden">
+          <div
+            className={cn("flex flex-col overflow-hidden bg-foreground/2", isMobile ? cn("flex-1", mobileTab !== "editor" && "hidden") : "shrink-0")}
+            style={isMobile ? undefined : { width: `${leftPct}%` }}
+          >
+            <EditorPane
+              activeId={activeId}
+              activeNote={activeNote}
+              focusEditorLineRef={focusEditorLineRef}
+              notes={notes}
+              onAdd={addNote}
+              onDelete={deleteNote}
+              onEditorReady={(fn) => { setEditorContentRef.current = fn; }}
+              onRename={renameNote}
+              onSelect={setActiveId}
+              onUpdate={updateNote}
+              vimMode={vimMode}
+            />
+          </div>
+
+          {!isMobile && (
+            <div
+              aria-orientation="vertical"
+              aria-valuemax={85}
+              aria-valuemin={15}
+              aria-valuenow={leftLabel}
+              className="group relative z-10 w-px shrink-0 cursor-col-resize overflow-visible"
+              onDoubleClick={() => setLeftPct(50)}
+              onMouseDown={(e) => {
+                e.preventDefault();
+                setDragging(true);
+              }}
+              role="separator"
+            >
+              <div className="absolute inset-y-0 -inset-x-1.5 transition-colors duration-150" />
+              <div className="absolute inset-y-0 left-0 w-px bg-border" />
+              <div className={`pointer-events-none absolute top-1/2 left-1/2 w-0.75 -translate-x-1/2 -translate-y-1/2 rounded-full bg-foreground/30 transition-all duration-200 ${dragging ? "h-12 bg-foreground/50 opacity-100" : "h-8 opacity-0 group-hover:opacity-100"}`} />
+            </div>
+          )}
+
+          <div className={cn("flex flex-1 flex-col overflow-hidden bg-background", isMobile && mobileTab === "editor" && "hidden")}>
+            {!isMobile && (
+              <div className="flex h-9 shrink-0 items-center gap-0.5 border-b border-border/60 px-2">
+                {(["preview", "outline"] as RightTab[]).map(tab => (
+                  <Button
+                    className={cn(
+                      "capitalize transition-[background-color,color]",
+                      rightTab === tab ? "bg-foreground/5 hover:bg-foreground/5" : "text-muted-foreground hover:bg-foreground/5 hover:text-foreground",
+                    )}
+                    key={tab}
+                    onClick={() => setRightTab(tab)}
+                    size="xs"
+                    variant="ghost"
+                  >
+                    {tab}
+                  </Button>
+                ))}
+              </div>
+            )}
+            {(() => {
+              const effectiveRightTab
+                = isMobile && mobileTab !== "editor"
+                  ? (mobileTab as RightTab)
+                  : rightTab;
+              return (
+                <>
+                  <PreviewPane
+                    focusEditorLineRef={focusEditorLineRef}
+                    note={activeNote}
+                    onJumpToLine={
+                      isMobile
+                        ? (line) => {
+                            focusEditorLineRef.current?.(line);
+                            setMobileTab("editor");
+                          }
+                        : undefined
+                    }
+                    tab={effectiveRightTab}
+                  />
+                  <RightFooter
+                    note={activeNote}
+                    onRestore={(content) => {
+                      setEditorContentRef.current?.(content);
+                      if (activeNote) updateNote(activeNote.id, content);
+                    }}
+                  />
+                </>
+              );
+            })()}
+          </div>
         </div>
       </div>
       <SearchCommand
@@ -391,13 +441,13 @@ function EditorPane({
   );
 }
 
-function PreviewPane({ focusEditorLineRef, note, tab }: { focusEditorLineRef: React.RefObject<(line: number) => void>; note: Note | null; tab: RightTab }) {
+function PreviewPane({ focusEditorLineRef, note, onJumpToLine, tab }: { focusEditorLineRef: React.RefObject<(line: number) => void>; note: Note | null; onJumpToLine?: (line: number) => void; tab: RightTab }) {
   if (!note) return <div className="flex-1" />;
 
   if (tab === "outline") {
     return (
       <ScrollArea className="flex-1" scrollFade>
-        <OutlineTree content={note.content} onJumpToLine={line => focusEditorLineRef.current?.(line)} />
+        <OutlineTree content={note.content} onJumpToLine={onJumpToLine || (line => focusEditorLineRef.current?.(line))} />
       </ScrollArea>
     );
   }

@@ -13,10 +13,11 @@ import {
 
 interface DownloadButtonProps {
   content: string;
+  iconOnly?: boolean;
   title: string;
 }
 
-export function DownloadButton({ content, title }: DownloadButtonProps) {
+export function DownloadButton({ content, iconOnly = false, title }: DownloadButtonProps) {
   function downloadMarkdown() {
     const blob = new Blob([content], { type: "text/markdown" });
     const url = URL.createObjectURL(blob);
@@ -98,7 +99,7 @@ export function DownloadButton({ content, title }: DownloadButtonProps) {
     <DropdownMenu>
       <DropdownMenuTrigger className={buttonVariants({ size: "xs", variant: "ghost" })}>
         <Download className="size-3.5" />
-        Download
+        {!iconOnly && "Download"}
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" side="bottom" sideOffset={6}>
         <DropdownMenuItem className="text-xs!" onClick={downloadMarkdown}>

@@ -11,7 +11,7 @@ import {
   DropdownMenuTrigger,
 } from "./ui/menu";
 
-export function ShareButton({ content }: { content: string }) {
+export function ShareButton({ content, iconOnly = false }: { content: string; iconOnly?: boolean }) {
   function copyMarkdown() {
     navigator.clipboard.writeText(content);
     toastManager.add({ id: "copy-markdown", title: "Copied Markdown", type: "success" });
@@ -26,7 +26,7 @@ export function ShareButton({ content }: { content: string }) {
     <DropdownMenu>
       <DropdownMenuTrigger className={buttonVariants({ size: "xs", variant: "ghost" })}>
         <Share2Icon className="size-3.5" />
-        Share
+        {!iconOnly && "Share"}
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" side="bottom" sideOffset={6}>
         <DropdownMenuItem className="text-xs!" onClick={copyMarkdown}>
