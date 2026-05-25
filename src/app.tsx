@@ -333,8 +333,10 @@ export default function App() {
                     onJumpToLine={
                       isMobile
                         ? (line) => {
-                            focusEditorLineRef.current?.(line);
                             setMobileTab("editor");
+                            setTimeout(() => {
+                              focusEditorLineRef.current?.(line);
+                            }, 50);
                           }
                         : undefined
                     }
@@ -453,7 +455,12 @@ function PreviewPane({ focusEditorLineRef, note, onJumpToLine, tab }: { focusEdi
   }
 
   function handlePreviewDoubleClick(line: number) {
-    focusEditorLineRef.current(line);
+    if (onJumpToLine) {
+      onJumpToLine(line);
+    }
+    else {
+      focusEditorLineRef.current(line);
+    }
   }
 
   return (

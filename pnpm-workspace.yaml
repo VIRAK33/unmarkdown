@@ -1,4 +1,7 @@
+packages:
+  - "."
+
 allowBuilds:
-  core-js: set this to true or false
-  msw: set this to true or false
-  simple-git-hooks: set this to true or false
+  core-js: true
+  msw: true
+  simple-git-hooks: true
