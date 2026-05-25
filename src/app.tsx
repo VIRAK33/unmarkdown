@@ -42,7 +42,8 @@ export default function App() {
   const [vimMode, setVimMode] = useLocalStorage("vim-mode", false);
   const [rightTab, setRightTab] = useLocalStorage<RightTab>("right-tab", "preview");
   const containerRef = useRef<HTMLDivElement>(null);
-  const setEditorContent = useRef<((content: string) => void) | null>(null);
+  const setEditorContentRef = useRef<((content: string) => void) | null>(null);
+  const focusEditorLineRef = useRef<(line: number) => void>(() => {});
 
   const {
     activeId,
@@ -59,10 +60,10 @@ export default function App() {
   const handleFormatRef = useRef<() => void>(() => {});
 
   async function handleFormat() {
-    if (!activeNote || !setEditorContent.current) return;
+    if (!activeNote || !setEditorContentRef.current) return;
     const { formatMarkdown } = await import("./lib/format");
     const formatted = await formatMarkdown(activeNote.content);
-    setEditorContent.current(formatted);
+    setEditorContentRef.current(formatted);
     updateNote(activeNote.id, formatted);
   }
 
@@ -231,10 +232,11 @@ export default function App() {
           <EditorPane
             activeId={activeId}
             activeNote={activeNote}
+            focusEditorLineRef={focusEditorLineRef}
             notes={notes}
             onAdd={addNote}
             onDelete={deleteNote}
-            onEditorReady={(fn) => { setEditorContent.current = fn; }}
+            onEditorReady={(fn) => { setEditorContentRef.current = fn; }}
             onRename={renameNote}
             onSelect={setActiveId}
             onUpdate={updateNote}
@@ -277,7 +279,7 @@ export default function App() {
               </Button>
             ))}
           </div>
-          <PreviewPane note={activeNote} tab={rightTab} />
+          <PreviewPane focusEditorLineRef={focusEditorLineRef} note={activeNote} tab={rightTab} />
           <RightFooter note={activeNote} />
         </div>
       </div>
@@ -288,6 +290,7 @@ export default function App() {
 function EditorPane({
   activeId,
   activeNote,
+  focusEditorLineRef,
   notes,
   onAdd,
   onDelete,
@@ -299,6 +302,7 @@ function EditorPane({
 }: {
   activeId: null | string;
   activeNote: Note | null;
+  focusEditorLineRef: React.RefObject<(line: number) => void>;
   notes: Note[];
   onAdd: () => void;
   onDelete: (id: string) => void;
@@ -337,6 +341,7 @@ function EditorPane({
               <EditorView
                 key={activeNote.id}
                 note={activeNote}
+                onFocusLine={(fn) => { focusEditorLineRef.current = fn; }}
                 onReady={onEditorReady}
                 onUpdate={onUpdate}
                 vimMode={vimMode}
@@ -353,7 +358,7 @@ function EditorPane({
   );
 }
 
-function PreviewPane({ note, tab }: { note: Note | null; tab: RightTab }) {
+function PreviewPane({ focusEditorLineRef, note, tab }: { focusEditorLineRef: React.RefObject<(line: number) => void>; note: Note | null; tab: RightTab }) {
   if (!note) return <div className="flex-1" />;
 
   if (tab === "outline") {
@@ -364,12 +369,16 @@ function PreviewPane({ note, tab }: { note: Note | null; tab: RightTab }) {
     );
   }
 
+  function handlePreviewDoubleClick(line: number) {
+    focusEditorLineRef.current(line);
+  }
+
   return (
     <ScrollArea className="flex-1" scrollFade>
       <div className="p-4">
         <div className="prose">
           <Suspense fallback={null}>
-            <MarkdownPreview content={note.content} />
+            <MarkdownPreview content={note.content} onDoubleClick={handlePreviewDoubleClick} />
           </Suspense>
         </div>
       </div>
