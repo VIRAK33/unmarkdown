@@ -1,4 +1,5 @@
 name = "unmarkdown"
+compatibility_date = "2026-05-25"
 
 [build]
 command = "pnpm run build"
