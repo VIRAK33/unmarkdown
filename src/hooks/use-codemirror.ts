@@ -6,6 +6,7 @@ import { defaultKeymap, history, historyKeymap, indentWithTab } from "@codemirro
 import { markdown, markdownLanguage } from "@codemirror/lang-markdown";
 import { indentUnit } from "@codemirror/language";
 import { languages } from "@codemirror/language-data";
+import { search, searchKeymap } from "@codemirror/search";
 import { RangeSetBuilder } from "@codemirror/state";
 import { Compartment, EditorState } from "@codemirror/state";
 import { Decoration, drawSelection, EditorView, keymap, lineNumbers, ViewPlugin, WidgetType } from "@codemirror/view";
@@ -161,7 +162,8 @@ export function useCodemirror({
       history(),
       EditorState.tabSize.of(2),
       indentUnit.of("  "),
-      keymap.of([indentWithTab, ...defaultKeymap, ...historyKeymap]),
+      keymap.of([indentWithTab, ...searchKeymap, ...defaultKeymap, ...historyKeymap]),
+      search({ top: false }),
       markdown({ base: markdownLanguage, codeLanguages: languages }),
       EditorView.lineWrapping,
       headingLabels,

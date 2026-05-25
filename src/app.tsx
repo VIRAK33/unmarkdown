@@ -12,9 +12,11 @@ const SettingsDialog = lazy(() => import("./components/settings-dialog"));
 
 import { EditorView } from "./components/editor-view";
 import { GitHubButton } from "./components/github-button";
+import { HistoryPopover } from "./components/history-popover";
 import { Logo } from "./components/logo";
 import { NoteTab } from "./components/note-tab";
 import { OutlineTree } from "./components/outline-tree";
+import { SearchCommand } from "./components/search-command";
 import { ShareButton } from "./components/share-button";
 import { ThemeToggle } from "./components/theme-toggle";
 import { Button } from "./components/ui/button";
@@ -39,6 +41,7 @@ const altKey = isMac ? "⌥" : "Alt";
 export default function App() {
   const [leftPct, setLeftPct] = useLocalStorage("split-pct", 50);
   const [dragging, setDragging] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
   const [vimMode, setVimMode] = useLocalStorage("vim-mode", false);
   const [rightTab, setRightTab] = useLocalStorage<RightTab>("right-tab", "preview");
   const containerRef = useRef<HTMLDivElement>(null);
@@ -73,6 +76,11 @@ export default function App() {
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.code === "KeyK") {
+        e.preventDefault();
+        setSearchOpen(v => !v);
+        return;
+      }
       if (!e.altKey) return;
       if (e.code === "KeyV") {
         e.preventDefault();
@@ -280,9 +288,28 @@ export default function App() {
             ))}
           </div>
           <PreviewPane focusEditorLineRef={focusEditorLineRef} note={activeNote} tab={rightTab} />
-          <RightFooter note={activeNote} />
+          <RightFooter
+            note={activeNote}
+            onRestore={(content) => {
+              setEditorContentRef.current?.(content);
+              if (activeNote) updateNote(activeNote.id, content);
+            }}
+          />
         </div>
       </div>
+      <SearchCommand
+        notes={notes}
+        onOpenChange={setSearchOpen}
+        onSelect={(id, lineNumber) => {
+          setActiveId(id);
+          if (lineNumber) {
+            setTimeout(() => {
+              focusEditorLineRef.current?.(lineNumber);
+            }, 100);
+          }
+        }}
+        open={searchOpen}
+      />
     </div>
   );
 }
@@ -364,7 +391,7 @@ function PreviewPane({ focusEditorLineRef, note, tab }: { focusEditorLineRef: Re
   if (tab === "outline") {
     return (
       <ScrollArea className="flex-1" scrollFade>
-        <OutlineTree content={note.content} />
+        <OutlineTree content={note.content} onJumpToLine={line => focusEditorLineRef.current?.(line)} />
       </ScrollArea>
     );
   }
@@ -386,7 +413,7 @@ function PreviewPane({ focusEditorLineRef, note, tab }: { focusEditorLineRef: Re
   );
 }
 
-function RightFooter({ note }: { note: Note | null }) {
+function RightFooter({ note, onRestore }: { note: Note | null; onRestore: (content: string) => void }) {
   const wordCount = note
     ? note.content.trim().split(/\s+/).filter(Boolean).length
     : 0;
@@ -404,11 +431,14 @@ function RightFooter({ note }: { note: Note | null }) {
             )
           : "—"}
       </span>
-      <span className="tabular-nums">
-        {wordCount}
-        {" "}
-        {wordCount === 1 ? "word" : "words"}
-      </span>
+      <div className="flex items-center gap-2">
+        {note && <HistoryPopover noteId={note.id} onRestore={onRestore} />}
+        <span className="tabular-nums">
+          {wordCount}
+          {" "}
+          {wordCount === 1 ? "word" : "words"}
+        </span>
+      </div>
     </div>
   );
 }

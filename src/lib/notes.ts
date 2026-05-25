@@ -1,5 +1,7 @@
 import { createStore, del, entries, get, set } from "idb-keyval";
 
+import { pushSnapshot } from "./history";
+
 export type Note = {
   content: string;
   createdAt: number;
@@ -93,5 +95,8 @@ export const notesDb = {
   delete: (id: string) => del(id, store),
   get: (id: string) => get<Note>(id, store),
   getAll: () => entries<string, Note>(store).then(e => e.map(([, v]) => v)),
-  save: (note: Note) => set(note.id, note, store),
+  save: async (note: Note) => {
+    await set(note.id, note, store);
+    await pushSnapshot(note.id, note.content);
+  },
 };

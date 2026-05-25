@@ -7,10 +7,11 @@ import { cn } from "@/lib/utils";
 interface HeadingNode {
   children: HeadingNode[];
   level: number;
+  line: number;
   text: string;
 }
 
-export function OutlineTree({ content }: { content: string }) {
+export function OutlineTree({ content, onJumpToLine }: { content: string; onJumpToLine?: (line: number) => void }) {
   const [open, setOpen] = useState(true);
   const roots = buildTree(content);
 
@@ -41,7 +42,7 @@ export function OutlineTree({ content }: { content: string }) {
                   </li>
                 )
               : roots.map((node, i) => (
-                  <TreeNode depth={1} key={i} node={node} />
+                  <TreeNode depth={1} key={i} node={node} onJumpToLine={onJumpToLine} />
                 ))}
           </ul>
         )}
@@ -55,12 +56,12 @@ function buildTree(content: string): HeadingNode[] {
   const roots: HeadingNode[] = [];
   const stack: HeadingNode[] = [];
 
-  for (const line of lines) {
+  lines.forEach((line, idx) => {
     const m = line.match(/^(#{1,6})\s+(.+)/);
-    if (!m) continue;
+    if (!m) return;
     const level = m[1].length;
     const text = stripText(m[2]);
-    const node: HeadingNode = { children: [], level, text };
+    const node: HeadingNode = { children: [], level, line: idx + 1, text };
 
     while (stack.length > 0 && stack[stack.length - 1].level >= level) {
       stack.pop();
@@ -73,20 +74,27 @@ function buildTree(content: string): HeadingNode[] {
       stack[stack.length - 1].children.push(node);
     }
     stack.push(node);
-  }
+  });
 
   return roots;
 }
 
-function TreeNode({ depth = 0, node }: { depth?: number; node: HeadingNode }) {
+function TreeNode({ depth = 0, node, onJumpToLine }: { depth?: number; node: HeadingNode; onJumpToLine?: (line: number) => void }) {
   const [open, setOpen] = useState(true);
   const hasChildren = node.children.length > 0;
+
+  const handleClick = () => {
+    if (hasChildren) {
+      setOpen(o => !o);
+    }
+    onJumpToLine?.(node.line);
+  };
 
   return (
     <li>
       <div
         className="group flex cursor-pointer items-center gap-1 py-1 pr-3 text-[13px] text-foreground transition-colors hover:bg-foreground/5"
-        onClick={() => hasChildren && setOpen(o => !o)}
+        onClick={handleClick}
         style={{ paddingLeft: `${8 + depth * 16}px` }}
       >
         <span
@@ -107,7 +115,7 @@ function TreeNode({ depth = 0, node }: { depth?: number; node: HeadingNode }) {
       {hasChildren && open && (
         <ul>
           {node.children.map((child, i) => (
-            <TreeNode depth={depth + 1} key={i} node={child} />
+            <TreeNode depth={depth + 1} key={i} node={child} onJumpToLine={onJumpToLine} />
           ))}
         </ul>
       )}

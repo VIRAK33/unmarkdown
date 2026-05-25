@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { createNote, type Note, notesDb, titleFromContent, WELCOME_NOTE } from "@/lib/notes";
 
@@ -7,6 +7,8 @@ import { useLocalStorage } from "./use-local-storage";
 export function useNotes() {
   const [notes, setNotes] = useState<Note[]>([]);
   const [activeId, setActiveId] = useLocalStorage<null | string>("active-note-id", null);
+  const saveTimerRef = useRef<null | ReturnType<typeof setTimeout>>(null);
+  const pendingSaveRef = useRef<Note | null>(null);
 
   useEffect(() => {
     notesDb.getAll().then((all) => {
@@ -24,6 +26,22 @@ export function useNotes() {
       }
     });
   }, []);
+
+  useEffect(() => {
+    return () => {
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (saveTimerRef.current) {
+      clearTimeout(saveTimerRef.current);
+      if (pendingSaveRef.current) {
+        notesDb.save(pendingSaveRef.current).catch(console.error);
+        pendingSaveRef.current = null;
+      }
+    }
+  }, [activeId]);
 
   const activeNote = notes.find(n => n.id === activeId) ?? null;
 
@@ -48,7 +66,14 @@ export function useNotes() {
       prev.map((n) => {
         if (n.id !== id) return n;
         const updated = { ...n, content, title: titleFromContent(content), updatedAt: Date.now() };
-        notesDb.save(updated);
+        pendingSaveRef.current = updated;
+        if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+        saveTimerRef.current = setTimeout(async () => {
+          if (pendingSaveRef.current?.id === updated.id) {
+            await notesDb.save(updated);
+            pendingSaveRef.current = null;
+          }
+        }, 300);
         return updated;
       }),
     );
