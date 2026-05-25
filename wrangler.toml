@@ -1,0 +1,27 @@
+name = "unmarkdown"
+type = "javascript"
+main = "dist/index.html"
+
+[build]
+command = "pnpm run build"
+cwd = "."
+
+[build.upload]
+format = "modules"
+
+[assets]
+directory = "dist"
+
+[[assets.rules]]
+type = "CompiledContentType"
+globs = ["**/*.js", "**/*.mjs"]
+fallthrough = true
+
+[[assets.rules]]
+type = "CompiledContentType"
+globs = ["**/*.css"]
+fallthrough = true
+
+[env.production]
+route = "unmarkdown.virak.dev/*"
+zone_id = ""
