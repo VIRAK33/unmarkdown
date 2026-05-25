@@ -10,6 +10,7 @@ import type { Note } from "./lib/notes";
 const MarkdownPreview = lazy(() => import("./components/markdown-preview"));
 const SettingsDialog = lazy(() => import("./components/settings-dialog"));
 
+import { DownloadButton } from "./components/download-button";
 import { EditorView } from "./components/editor-view";
 import { GitHubButton } from "./components/github-button";
 import { HistoryPopover } from "./components/history-popover";
@@ -208,7 +209,12 @@ export default function App() {
               </TooltipContent>
             </Tooltip>
 
-            {activeNote && <ShareButton content={activeNote.content} />}
+            {activeNote && (
+              <>
+                <ShareButton content={activeNote.content} />
+                <DownloadButton content={activeNote.content} title={activeNote.title} />
+              </>
+            )}
           </div>
         </TooltipProvider>
 
